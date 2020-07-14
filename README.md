@@ -1,2 +1,3 @@
 # ori-GIoU
-Generalized union over intersection (GIOU) for oriented bounding boxes
+
+This repo contains an implementation of [Generalized union over intersection (GIoU)](https://giou.stanford.edu/) on oriented bounding boxes.
