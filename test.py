@@ -41,7 +41,7 @@ def optimization_test(tgt_boxes, src_boxes, lr=1e-3, max_iter=int(1e5)):
         )
         loss = loss_giou.sum()
 
-        if i % 100 == 0:
+        if i % 10 == 0:
             img = np.ones((512, 512, 3), np.uint8) * 255
             img = draw_boxes(src_boxes, img, (0, 0, 255))
             img = draw_boxes(tgt_boxes, img, (255, 0, 0))
@@ -53,7 +53,7 @@ def optimization_test(tgt_boxes, src_boxes, lr=1e-3, max_iter=int(1e5)):
         loss.backward()
         optimizer.step()
 
-    out = cv2.VideoWriter('opt_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
+    out = cv2.VideoWriter('box_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
     for i in range(len(img_array)):
         out.write(img_array[i])
     out.release()
@@ -69,13 +69,6 @@ def get_matched_loss(tgt_boxes, src_boxes, cost_matcher):
 
     indices = cost_matcher(outputs, targets)
     src_idx, tgt_idx = indices[0]  # batch=1
-
-    """
-    print(src_idx)
-    print(src_boxes[src_idx])
-    print(tgt_idx)
-    print(tgt_boxes[tgt_idx])
-    """
 
     src_boxes = src_boxes[src_idx]
     tgt_boxes = tgt_boxes[tgt_idx]
@@ -111,29 +104,29 @@ def matching_test(tgt_boxes, src_boxes, cost_bbox=0, cost_giou=1, lr=1e-3, max_i
         loss.backward()
         optimizer.step()
 
-    out = cv2.VideoWriter('match_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
+    out = cv2.VideoWriter('box_set_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
     for i in range(len(img_array)):
         out.write(img_array[i])
     out.release()
 
 
 if __name__ == "__main__":
-    # x_c, y_c, w, h, c, s
-    # scale: 0-1
-
     #torch.autograd.set_detect_anomaly(True)
 
-    """
-    # optimization test
-    np.random.seed(123)
+    # bounding box representation:
+    # [x_c, y_c, w, h, c, s]
+    # (x_c, y_c, w, h) are assumed to be in range 0-1 for visualization (other values are fine for computation)
+    # (c, s) are un-normalized cosine / sine values, only illegal case is c == s == 0
+
+    # box optimization test
+    np.random.seed(777)
     boxes1 = randombox(1)
     boxes2 = randombox(1)
     target = torch.tensor(boxes1, dtype=torch.float32)
     source = torch.tensor(boxes2, dtype=torch.float32, requires_grad=True)
-    optimization_test(target, source, lr=1e-3, max_iter=int(2e3))
-    """
+    optimization_test(target, source, lr=1e-3, max_iter=int(1e3))
 
-    # matching test
+    # box set optimization test
     np.random.seed(777)
     m = 5
     max_iter = int(3e2)
@@ -141,7 +134,6 @@ if __name__ == "__main__":
     boxes1 = np.zeros((m ** 2, 6))
     for i in range(m):
         for j in range(m):
-            #boxes1[m * i + j, :] = [(1 + i)/(1 + m), (1 + j)/(1 + m), 0.1 * (1 + np.random.randn()), 0.1 * (1 + np.random.randn()), np.random.randn(), np.random.randn()]
             boxes1[m * i + j, :] = [(1 + i) / (1 + m), (1 + j) / (1 + m), 0.1, 0.1, np.random.randn(), np.random.randn()]
     #boxes1 = randombox(m ** 2)
     boxes2 = randombox(m ** 2)
