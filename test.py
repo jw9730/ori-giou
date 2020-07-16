@@ -3,7 +3,7 @@ Test oriented GIoU.
 """
 import torch
 import torch.optim as optim
-import math
+import time
 import numpy as np
 import cv2
 from util import box_ops
@@ -11,8 +11,8 @@ from util import matching
 
 
 def randombox(n=1):
-    boxes = np.random.rand(n, 5)
-    boxes[:, 4] = (boxes[:, 4] - 0.5) * math.pi / 2
+    boxes = np.random.rand(n, 6)
+    boxes[:, 4:6] = np.random.randn(n, 2)
     return boxes
 
 
@@ -101,8 +101,8 @@ def matching_test(tgt_boxes, src_boxes, cost_bbox=0, cost_giou=1, lr=1e-3, max_i
 
         if i % 1 == 0:
             img = np.ones((512, 512, 3), np.uint8) * 255
-            img = draw_boxes(src_boxes, img, (0, 0, 255))
             img = draw_boxes(tgt_boxes, img, (255, 0, 0))
+            img = draw_boxes(src_boxes, img, (0, 0, 255))
             img = cv2.putText(img, f'lr={lr}, step: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
             img_array.append(img)
 
@@ -118,14 +118,13 @@ def matching_test(tgt_boxes, src_boxes, cost_bbox=0, cost_giou=1, lr=1e-3, max_i
 
 
 if __name__ == "__main__":
-    # x_c, y_c, w, h, theta (-pi <= theta < pi)
+    # x_c, y_c, w, h, c, s
     # scale: 0-1
 
-    # optimization test
-    #boxes1 = [[.7, .7, .2, .1, math.pi/7]]
-    #boxes2 = [[.2, .2, .3, .2, math.pi/3]]
+    #torch.autograd.set_detect_anomaly(True)
 
     """
+    # optimization test
     np.random.seed(123)
     boxes1 = randombox(1)
     boxes2 = randombox(1)
@@ -135,13 +134,23 @@ if __name__ == "__main__":
     """
 
     # matching test
-    #np.random.seed(123)
-    boxes1 = np.zeros((16, 5))
-    for i in range(4):
-        for j in range(4):
-            boxes1[4 * i + j, :] = [(1 + i)/5, (1 + j)/5, 0.1, 0.1, np.random.rand() - 0.5]
-    #boxes1 = randombox(16)
-    boxes2 = randombox(16)
+    np.random.seed(777)
+    m = 5
+    max_iter = int(3e2)
+
+    boxes1 = np.zeros((m ** 2, 6))
+    for i in range(m):
+        for j in range(m):
+            #boxes1[m * i + j, :] = [(1 + i)/(1 + m), (1 + j)/(1 + m), 0.1 * (1 + np.random.randn()), 0.1 * (1 + np.random.randn()), np.random.randn(), np.random.randn()]
+            boxes1[m * i + j, :] = [(1 + i) / (1 + m), (1 + j) / (1 + m), 0.1, 0.1, np.random.randn(), np.random.randn()]
+    #boxes1 = randombox(m ** 2)
+    boxes2 = randombox(m ** 2)
     target = torch.tensor(boxes1, dtype=torch.float32)
     source = torch.tensor(boxes2, dtype=torch.float32, requires_grad=True)
-    matching_test(target, source, cost_bbox=0, cost_giou=1, lr=2e-2, max_iter=int(1e2))
+
+    tic = time.time()
+    matching_test(target, source, cost_bbox=0, cost_giou=1, lr=1e-2, max_iter=max_iter)
+    toc = time.time()
+
+    # in local, 500-step optimization of 36 x 36 input took 2-3 min
+    print(f"matching_test: {toc - tic} sec taken for {max_iter}-step optimization of {m**2} x {m**2} input")
