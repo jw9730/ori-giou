@@ -17,7 +17,7 @@ def randombox(n=1):
 
 
 def draw_boxes(boxes, img, color=(0, 0, 0)):
-    corners = 512 * box_ops.box_center_to_corners(boxes.clone().detach())  # [N, 8]
+    corners = 256 * box_ops.box_center_to_corners(boxes.clone().detach())  # [N, 8]
     for b in range(boxes.shape[0]):
         c = corners[b, :].unbind(-1)
         box = np.asarray([[c[0], c[1]],
@@ -42,10 +42,10 @@ def optimization_test(tgt_boxes, src_boxes, lr=1e-3, max_iter=int(1e5)):
         loss = loss_giou.sum()
 
         if i % 10 == 0:
-            img = np.ones((512, 512, 3), np.uint8) * 255
+            img = np.ones((256, 256, 3), np.uint8) * 255
             img = draw_boxes(src_boxes, img, (0, 0, 255))
             img = draw_boxes(tgt_boxes, img, (255, 0, 0))
-            img = cv2.putText(img, f'lr={lr}, step: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+            img = cv2.putText(img, f'lr={lr}, step: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
             img_array.append(img)
 
             print(loss.item())
@@ -53,7 +53,7 @@ def optimization_test(tgt_boxes, src_boxes, lr=1e-3, max_iter=int(1e5)):
         loss.backward()
         optimizer.step()
 
-    out = cv2.VideoWriter('box_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
+    out = cv2.VideoWriter('box_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (256, 256))
     for i in range(len(img_array)):
         out.write(img_array[i])
     out.release()
@@ -93,10 +93,10 @@ def matching_test(tgt_boxes, src_boxes, cost_bbox=0, cost_giou=1, lr=1e-3, max_i
         loss = get_matched_loss(tgt_boxes, src_boxes, matcher)
 
         if i % 1 == 0:
-            img = np.ones((512, 512, 3), np.uint8) * 255
+            img = np.ones((256, 256, 3), np.uint8) * 255
             img = draw_boxes(tgt_boxes, img, (255, 0, 0))
             img = draw_boxes(src_boxes, img, (0, 0, 255))
-            img = cv2.putText(img, f'lr={lr}, step: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0))
+            img = cv2.putText(img, f'lr={lr}, step: {i}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
             img_array.append(img)
 
             print(loss.item())
@@ -104,7 +104,7 @@ def matching_test(tgt_boxes, src_boxes, cost_bbox=0, cost_giou=1, lr=1e-3, max_i
         loss.backward()
         optimizer.step()
 
-    out = cv2.VideoWriter('box_set_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (512, 512))
+    out = cv2.VideoWriter('box_set_test.avi', cv2.VideoWriter_fourcc(*'DIVX'), 15, (256, 256))
     for i in range(len(img_array)):
         out.write(img_array[i])
     out.release()
@@ -119,23 +119,25 @@ if __name__ == "__main__":
     # (c, s) are un-normalized cosine / sine values, only illegal case is c == s == 0
 
     # box optimization test
+    """
     np.random.seed(777)
     boxes1 = randombox(1)
     boxes2 = randombox(1)
     target = torch.tensor(boxes1, dtype=torch.float32)
     source = torch.tensor(boxes2, dtype=torch.float32, requires_grad=True)
     optimization_test(target, source, lr=1e-3, max_iter=int(1e3))
+    """
 
     # box set optimization test
-    np.random.seed(777)
-    m = 5
-    max_iter = int(3e2)
+    np.random.seed(123)
+    m = 3
+    max_iter = int(350)
 
     boxes1 = np.zeros((m ** 2, 6))
     for i in range(m):
         for j in range(m):
-            boxes1[m * i + j, :] = [(1 + i) / (1 + m), (1 + j) / (1 + m), 0.1, 0.1, np.random.randn(), np.random.randn()]
-    #boxes1 = randombox(m ** 2)
+            boxes1[m * i + j, :] = [(1 + i) / (1 + m), (1 + j) / (1 + m), 0.1 * (0.1 + 2 * np.random.rand()), 0.1 * (0.1 + 2 * np.random.rand()), np.random.randn(), np.random.randn()]
+    boxes1 = randombox(m ** 2)
     boxes2 = randombox(m ** 2)
     target = torch.tensor(boxes1, dtype=torch.float32)
     source = torch.tensor(boxes2, dtype=torch.float32, requires_grad=True)

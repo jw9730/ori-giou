@@ -6,7 +6,6 @@ The base code for axis-aligned box manipulation and optimal matching was taken f
 
 For use cases, see `test.py`.
 
-
 # Demo
 
 Red boxes are optimized by gradient descent in respect to blue boxes.
@@ -17,14 +16,12 @@ Red boxes are optimized by gradient descent in respect to blue boxes.
 
 2. Regular boxes on grid
 
-![grid_regular](demo/5x5_regular.gif)
+![grid_regular](demo/grid_regular.gif)
 
 3. Irregular boxes on grid
 
-![grid_irregular](demo/5x5_irregular.gif)
+![grid_irregular](demo/grid_irregular.gif)
 
 4. Random boxes
 
-![randombox1](demo/randombox_1.gif)
-
-![randombox3](demo/randombox_3.gif)
+![randombox1](demo/random.gif)
