@@ -8,12 +8,10 @@ def box_center_to_corners(b):
     """
     Converts a set of oriented bounding boxes from
     centered representation (x_c, y_c, w, h, theta) to corner representation (x0, y0, ..., x3, y3).
-
     Arguments:
         b (Tensor[N, 6]): boxes to be converted. They are
             expected to be in (x_c, y_c, w, h, c, s) format.
             * c, s: unnormalized cos, sin
-
     Returns:
         c (Tensor[N, 8]): converted boxes in (x0, y0, ..., x3, y3) format, where
             the corners are sorted counterclockwise.
@@ -46,7 +44,6 @@ def box_corners_to_center(corners):
     Arguments:
         corners (Tensor[N, 8]): boxes to be converted. They are
             expected to be in (x0, y0, ..., x3, y3) format, where the corners are sorted counterclockwise.
-
     Returns:
         b (Tensor[N, 6]): converted boxes in centered
             (x_c, y_c, w, h, c, s) format.
@@ -105,11 +102,9 @@ def box_inter(box1, box2):
     """
     Finds intersection convex polygon using sequential cut, then computes its area by counterclockwise cross product.
     https://stackoverflow.com/questions/44797713/calculate-the-area-of-intersection-of-two-rotated-rectangles-in-python/45268241
-
        Arguments:
            box1, box2 (Tensor[8], Tensor[8]): boxes to compute area of intersection. They are
                expected to be in (x0, y0, ..., x3, y3) format, where the corners are sorted counterclockwise.
-
        Returns:
            inter: torch.float32
     """
@@ -153,7 +148,6 @@ def box_convex_hull(box1, box2):
        Arguments:
            box1, box2 (Tensor[8], Tensor[8]): boxes to compute convex hull area. They are
                expected to be in (x0,y0, ..., x3,y3) format, where the corners are sorted counterclockwise.
-
        Returns:
            area: torch.float32
     """
@@ -217,13 +211,11 @@ class Lines:
 def cuts(polygons, sizes, p, q):
     """
     vectorized polygon cut
-
     Arguments:
         polygons (Tensor[N, K, 2])
         sizes (Tensor[N,])
         p (Tensor[N, 2])
         q (Tensor[N, 2])
-
     Returns:
         new_polygons (Tensor[N, K+1, 2])
         new_sizes (Tensor[N,])
@@ -290,11 +282,9 @@ def box_inter_tensor(boxes1, boxes2):
     """
     Finds intersection convex polygon using sequential cut, then computes its area by counterclockwise cross product.
     https://stackoverflow.com/questions/44797713/calculate-the-area-of-intersection-of-two-rotated-rectangles-in-python/45268241
-
        Arguments:
            boxes1, boxes2 (Tensor[N, 8], Tensor[M, 8]): boxes to compute area of intersection. They are
                expected to be in (x0, y0, ..., x3, y3) format, where the corners are sorted counterclockwise.
-
        Returns:
            inter (Tensor[N, M]) pairwise matrix, where N = len(boxes1) and M = len(boxes2)
     """
@@ -325,7 +315,7 @@ def box_inter_tensor(boxes1, boxes2):
 
     sizes = sizes.unsqueeze(-1).expand([-1, 8])  # [N * M, 8]
     inter[sizes <= 2] = 0
-    inter[sizes <= torch.arange(8).unsqueeze(0)] = 0
+    inter[sizes <= torch.arange(8).unsqueeze(0).to(boxes1.device)] = 0
 
     return 0.5 * inter.reshape([N, M, -1]).sum(dim=-1)  # [N, M]
 
@@ -335,7 +325,6 @@ def box_convex_hull_tensor(boxes1, boxes2):
        Arguments:
            boxes1, boxes2 (Tensor[N, 8], Tensor[M, 8]): boxes to compute convex hull area. They are
                expected to be in (x0, y0, ..., x3, y3) format, where the corners are sorted counterclockwise.
-
        Returns:
            hull (Tensor[N, M]) pairwise matrix, where N = len(boxes1) and M = len(boxes2)
     """
@@ -354,7 +343,7 @@ def box_convex_hull_tensor(boxes1, boxes2):
     boxes1 = boxes1.reshape([-1, 4, 2]).unsqueeze(1).expand(-1, M, -1, -1).reshape([N * M, 4, 2])  # [N * M, 4, 2]
     boxes2 = boxes2.reshape([-1, 4, 2]).unsqueeze(0).expand(N, -1, -1, -1).reshape([N * M, 4, 2])  # [N * M, 4, 2]
     boxes = torch.cat([boxes1, boxes2], dim=1)  # [N * M, 8, 2]
-    boxes = boxes + 1e-5 * torch.randn([N * M, 8, 2])
+    boxes = boxes + 1e-5 * torch.randn([N * M, 8, 2]).to(boxes1.device)
     _, indices = boxes.sort(dim=1, descending=False)  # [N * M, 8, 2]
     indices = indices[:, :, 0].unsqueeze(-1).expand([-1, -1, 2])  # [N * M, 8, 2]
     boxes = boxes.gather(dim=1, index=indices)
@@ -422,7 +411,7 @@ def box_convex_hull_tensor(boxes1, boxes2):
 
     sizes = sizes.unsqueeze(-1).expand([-1, 8])  # [N * M, 8]
     hull[sizes <= 2] = 0
-    hull[sizes <= torch.arange(8).unsqueeze(0)] = 0
+    hull[sizes <= torch.arange(8).unsqueeze(0).to(boxes1.device)] = 0
 
     return 0.5 * hull.reshape([N, M, -1]).sum(dim=-1)  # [N, M]
 
@@ -432,7 +421,6 @@ def box_iou(boxes1, boxes2):
     Arguments:
         boxes1, boxes2 (Tensor[N, 8], Tensor[M, 8]): boxes to compute IoU. They are
             expected to be in (x0, y0, ..., x3, y3) format, where the corners are sorted counterclockwise.
-
     Returns:
         iou: [N, M] pairwise matrix, where N = len(boxes1) and M = len(boxes2)
         union: [N, M] pairwise matrix
@@ -457,9 +445,7 @@ def box_iou(boxes1, boxes2):
 def generalized_box_iou(boxes1, boxes2):
     """
     Generalized IoU from https://giou.stanford.edu/
-
     The boxes should be in corners [x0,y0, ... x3,y3] format
-
     Returns a [N, M] pairwise matrix, where N = len(boxes1)
     and M = len(boxes2)
     """

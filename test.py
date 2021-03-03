@@ -139,12 +139,12 @@ if __name__ == "__main__":
             boxes1[m * i + j, :] = [(1 + i) / (1 + m), (1 + j) / (1 + m), 0.1 * (0.1 + 2 * np.random.rand()), 0.1 * (0.1 + 2 * np.random.rand()), np.random.randn(), np.random.randn()]
     boxes1 = randombox(m ** 2)
     boxes2 = randombox(m ** 2)
-    target = torch.tensor(boxes1, dtype=torch.float32)
-    source = torch.tensor(boxes2, dtype=torch.float32, requires_grad=True)
+    target = torch.tensor(boxes1, dtype=torch.float32).to('cuda')
+    source = torch.tensor(boxes2, dtype=torch.float32).to('cuda').detach().requires_grad_(True)
 
     tic = time.time()
     matching_test(target, source, cost_bbox=0, cost_giou=1, lr=1e-2, max_iter=max_iter)
     toc = time.time()
 
-    # in local, 500-step optimization of 36 x 36 input took 2-3 min
+    # in local CPU, 500-step optimization of 36 x 36 input took 2-3 min
     print(f"matching_test: {toc - tic} sec taken for {max_iter}-step optimization of {m**2} x {m**2} input")
